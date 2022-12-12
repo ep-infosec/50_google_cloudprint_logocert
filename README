@@ -1,0 +1,254 @@
+Google Cloud Print Logo Certification Tool
+
+The Logo Certification tool is a group of tests designed to aid in running
+Logo Certification tests that printers must pass in order to obtain Logo
+Certification. The tool is made up of a number of python files, and utilizes
+the python UnitTest module to actually execute the tests.
+
+List of modules and their purpose:
+
+--> testcert.py - the entry point and driver of the tests. All of the actual
+tests are located in this file.
+--> _common.py - some shared functions within the package.
+--> _config.py - configuration information. This needs to be updated for each
+specific device under test. This file needs to be edited by the user executing
+the test
+--> _ticket.py - Provides the Cloud Job Ticket (CJT) object and methods to
+specify various print options for both cloud printing and local printing
+--> _cpslib.py - Methods to access GCP API's
+--> _device.py - Methods to support populating the device attributes.
+--> _gdocs.py - Methods to interact with Google Docs and Google Drive.
+--> _jsonparser.py - Methods to parse and handle JSON formatted docs and strings.
+--> _log.py - Provides a logger to ensure proper logging of all activities.
+--> _zconf.py - Provides support for monitoring mdns advertisements.
+--> _oauth2.py - Provides support to get oauth2 tokens.
+--> _privet.py - Provides privet structures.
+--> _sheets.py - Uses _gdocs.py to create and populate a Google spreadsheet.
+--> _transport.py - Provides HTTP support for accessing web services.
+
+The tests are divided into suites the focus on specific areas. The areas tested
+are:
+
+1. Privet Protocol Integration
+2. Pre-registration Tests
+3. Cloud Print Registration
+4. Post-registration Tests
+5. Local Discovery Tests
+6. Local Print Tests
+7. Printing Tests
+8. Printer Capabilities
+9. Printer State Tests
+10. Job State Tests
+11. Cloud Print Unregistration
+12. Post-unregistration Tests
+
+DEPENDENCIES:
+(Instructions below are for Unix devices. For Windows,
+ use easy_install.py from PythonDir/Scripts)
+
+Requests module is required for HTTP comms. To install, use the command:
+sudo pip install --upgrade requests
+
+OAuth2Client and Google API client are required, To install, use the commands:
+
+sudo pip install --upgrade oauth2client
+sudo pip install --upgrade google-api-python-client
+
+The Python Zeroconf package is used to execute some of the mDNS tests. Install
+ZeroConf from the package located here:
+
+Using PIP:
+sudo pip install --upgrade zeroconf
+
+Or download from one of the following:
+https://pypi.python.org/pypi/zeroconf
+https://github.com/jstasiak/python-zeroconf
+
+The tool will also store test results into a Google Spreadsheet. If you want
+to use this functionality, you will need to install gdata. Install gdata from:
+
+https://github.com/google/gdata-python-client
+
+gdata depends on tlslite, if you get an error stack trace such as:
+File "/usr/local/lib/python2.7/dist-packages/gdata/oauth/rsa.py", line 10
+  from tlslite.utils import keyfactory
+ImportError: No module named tlslite.utils
+
+then install tlslite by running:
+sudo pip install tlslite
+
+gdata also depends on ElementTree; however, most systems will have ElementTree
+installed already. To test if it's installed, from a Python shell try:
+
+from xml.etree import ElementTree
+
+Before executing the Logo Certification Tool, a number of preparatory steps are
+required to get your test environment set up correctly.
+
+1. Test Account - Use a test account that uses Gmail, in order to properly
+authenticate against Google properties and also use OAuth2 credentials. Once
+you have obtained a test account, obtain OAuth2 credentials from the Google
+Developers Console. You'll also need a 2nd test account, without the OAuth2
+credentials.
+
+- Log in with your test account at https://accounts.google.com/
+- Access the Google Developers Console: https://console.developers.google.com
+- Create a project
+- Access the project you just created
+- In the left three-bar/hamburger menu, open "API Manager"
+- Select the Credentials link on the left
+- Create an OAuth2.0 Client ID of type "Other", native has been renamed to
+  "Other" in many places.
+- Two tokens are needed: under Client ID for native applications, copy the
+-- Client ID
+-- Client Secret
+
+2. Edit _config.py
+
+The following sections should be edited:
+
+-- AUTOMODE --
+* You should probably set this to False, as this will cause each
+  print test to wait for user input to determine if it passed or failed. If
+  AUTOMODE = True, then all jobs will be printed out and regardless of how they
+  look, the test will pass.
+
+-- CAPS --
+* This should reflect the actual capabilities of the printer. Set the
+  following values to True or False, depending on if the printer supports them
+  or not.
+
+  Please refer to _config.py for instructions to populating these fields.
+
+-- SLEEP --
+* This script tries its best to avoid using sleep but in the case that it is
+  used, you can tweak the sleep times based on the categories. The printer
+  specific ones are REGISTRATION, and PRINTER_STATE, defaults are 5 and 10 secs
+  respectively.
+
+-- TEST['RUN'] --
+* You may specify which tests to run/ignore via editing this.
+  Add a '#' prefix in front of a test name to exclude from test
+.
+
+-- LOGFILES --
+* Change this from /tmp/logocert if you want the log files to be stored in a
+  different location.
+
+-- PRINTER --
+* Add the correct values for CERTID (Certification ID), FIRMWARE, IP address,
+  MANUFACTURER, MODEL, PORT (integer, not string), SERIAL, and STATUS.
+
+-- TEST --
+* If you don't want the test results to be written to a Google Spreadsheet,
+  then change SPREADSHEET to False.
+
+* If you don't want to share the Google Sheets results with Google, set
+  SHARE_SHEET_WITH_GOOGLE to False. However, it is highly recommended that you
+  enable sharing to facilitate debugging and progress tracking. Setting
+  SHARE_SHEET_WITH_GOOGLE to True enables read/write access for
+  cloud-print-certification-team@google.com.
+
+* If you are on a Windows machine and running the tool out of an ANSI color
+  supporting console and want to enable color output, set FORCE_COLOR_OUTPUT
+  to True.
+
+-- USER --
+* Add the client id, client secret of the test account from step 1. Also add the
+  email address of this user.
+
+-- USER2 --
+* Add the email address of the 2nd test account.
+
+Save the _config.py and then all of the preparatory work is completed. Now simply
+execute testcert.py (NOTE: The user account should have no GCP printers registered
+under it before this script runs):
+
+./testcert.py
+
+Note that the first time you run this script, you may need to enter your
+credentials and sign in manually and click to authorize permissions. During the
+tests, sometimes you'll be prompted to accept printer registration on the
+device, and other times to ignore or cancel registration requests. Pay attention
+to the testcert.py output as it will ask you to turn the printer on and off at
+various times during the test process. All prompt actions are highlighted and
+create a beep sound when they appear.
+
+If you need to remove some of the test suites, edit _config.py (TEST['RUN']),
+and add a '#' in front of suite names you don't want to run. Pay attention
+to the whether the printer is registered or not before isolating suites however.
+See the list below for the required initial condition of each suite.
+
+The complete list of all testsuites and the order they should run is
+as follows:
+
+-------------------------Printer is UNREGISTERED before running the suites below
+- SystemUnderTest
+- Privet
+- PreRegistration
+- Registration
+-------------------------Printer is REGISTERED before running the suites below
+- PostRegistration
+- LocalDiscovery
+- Printer
+- PrinterState
+- JobState
+- CloudPrinting
+- LocalPrinting
+- RunAfter24Hours
+- Unregister
+-------------------------Printer is UNREGISTERED before running the suites below
+- PostUnregistration
+
+The order that the test cases run is determined alphanumerically, but the suites
+will run in the order they are placed in.
+
+LocalPrinting has a one-time dependency on CloudPrinting. When the
+LocalPrinting suite is run for the first time for a printer, it will make calls
+to the GCP submit interface in order to download the converted pwg-raster images
+that will be used in subsequent LocalPrinting tests. If Cloud Printing does not
+work for your printer, you would have to manually generate pwg-raster formats of
+testpage.png and rosemary.pdf then store them under the images directory as
+testpage.pwg and rosemary.pwg.
+
+Once the test has run, results will be placed in a log file. Log files are
+created with a date-time stamp in the logname. All of the test results will be
+annotated with passed, skipped, blocked, or failed, and possibly some other
+debug information. And if TEST['SPREADSHEET'] = True, then the results will be
+placed in a Google spreadsheet for easy reading of the test results.
+
+For each test that are blocked or failed, a cmdline is provided in the Google
+spreadsheet for the individual test case to be run again only by itself.
+They follow this format:
+    python -m unittest [moduleName].[testSuiteName].[testCaseName]
+Example:
+    python -m unittest testcert.Privet.testDeviceRegistrationInvalidClaimToken
+
+Known Issues
+
+1. Mac OSX
+
+If running on Mac OSX, you may come across this error - 'AttributeError:
+'Module_six_moves_urllib_parse' object has no attribute 'urlparse'' This occurs
+due to OSX comes with an out-of-date six.py. To fix this, simply run the
+following command each time you open a new terminal or add to bash profile:
+
+     export PYTHONPATH=/Library/Python/2.7/site-packages
+
+This will make python to check site-packages before the OSX system dirs
+
+2. Windows
+
+If running on Windows, you may not be able to detect any printers on start
+up. This is due to an existing zeroconf issue:
+https://github.com/jstasiak/python-zeroconf/issues/84
+
+There are two workarounds for this:
+
+  a) Comment out the line "if addr.get('netmask') != HOST_ONLY_NETWORK_MASK" in
+  zeroconf.py (Note: This requires editing a Python dependency)
+
+  OR
+
+  b) Downgrading zeroconf.py's dependency, netifaces, to 0.10.4
+
